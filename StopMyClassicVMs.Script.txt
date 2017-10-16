@@ -1,0 +1,78 @@
+#-------------------------------------------------------------------------------------
+# Runbook: StopMyClassicVMs
+#
+# Written By: Nigel Bolton, Bolton Business Services
+#
+# This script is designed to check all classic (ASM) VMs in a subscription to see
+# if they are StoppedDeallocated.  This is used to save money when machines are not
+# required to left running overnight.
+#
+# This script was written due to issues with existing runbooks in MS Powershell Gallery
+# no longer working due to deprecated commands, etc.
+# 
+# This script is made available free of charge and no liability will be accepted as a
+# result of using this script.
+#
+# REQUIRED SETUP
+# You are required to set up the following in Shared Resources in the Azure Portal:
+#
+# - Connection called 'AzureClassicRunAsConnection'
+# - Certficate called 'AzureClassicRunAsCertificate'
+#
+# If your automation account already has a Connection and Certificate created then
+# rename appropriate lines below to match the existing entries
+#-------------------------------------------------------------------------------------
+
+# Get automation credentials
+$autocred = Get-AutomationConnection -Name 'AzureClassicRunAsConnection'
+
+if (!$autocred) 
+{
+    Throw ('Get automation credentials failed.  Please check your credentials.')
+}
+else
+{
+    Write-Output ('Get automation credentials succeeded')
+}
+
+# Get automation certificate
+$cert = Get-AutomationCertificate -Name 'AzureClassicRunAsCertificate'
+
+if (!$cert)
+{
+    Throw ('Get automation certificate failed. Please check your certificate.')
+}
+else
+{
+    Write-Output ('Get automation certificate succeeded')
+}
+
+# Set the Azure Subscription
+Set-AzureSubscription -Certificate $cert -SubscriptionID $autocred.SubscriptionID -SubscriptionName $autocred.SubscriptionName
+
+# Select the Azure Subscription
+Select-AzureSubscription -SubscriptionID $autocred.SubscriptionID
+
+# Get all service names
+$servname = Get-AzureService
+Write-output ('Set Azure subscription & got all service names')
+
+# Get all VMs
+$vms = Get-AzureVM
+
+# Check all VMs
+foreach($vm in $vms)
+{
+    if ($vm.Status -eq 'StoppedDeallocated')
+    {
+        Write-Output ('Classic VM ' + $vm.Name + ' has status ' +  $vm.Status + '.  No further action required.')
+    }
+    else
+    {
+        Write-Output ('Stopping Classic VM ' + $vm.Name)
+        Stop-AzureVM -ServiceName $vm.ServiceName -Name $vm.Name -Force
+    }
+}
+
+# Runbook finished
+Write-Output ('Runbook has finished.')
