@@ -1,2 +1,2 @@
 # StopMyClassicVMs
-This script is an automation job to stop all running Classic VMs in a subscription
+This powershell script is an Azure automation job to stop all running Classic VMs in a subscription
